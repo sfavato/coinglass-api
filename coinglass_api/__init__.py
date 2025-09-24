@@ -1,17 +1,9 @@
 from .api import CoinglassAPI
-from .exceptions import (
-    CoinglassAPIError,
-    CoinglassParameterWarning,
-    CoinglassRequestError,
-    NoDataReturnedError,
-    RateLimitExceededError,
-)
+from .exceptions import CoinglassRequestError, NoDataReturnedError, RateLimitExceededError
 
 __all__ = [
     "CoinglassAPI",
-    "CoinglassAPIError",
     "CoinglassRequestError",
-    "RateLimitExceededError",
     "NoDataReturnedError",
-    "CoinglassParameterWarning"
+    "RateLimitExceededError",
 ]

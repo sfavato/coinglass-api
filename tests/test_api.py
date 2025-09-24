@@ -1,113 +1,163 @@
-import os
-from unittest import TestCase
+import unittest
+from unittest.mock import patch, MagicMock
+import pandas as pd
+from coinglass_api.api import CoinglassAPI
+from coinglass_api.exceptions import CoinglassRequestError, NoDataReturnedError, RateLimitExceededError
 
-from coinglass_api import CoinglassAPI, CoinglassRequestError
 
+class TestCoinglassAPI(unittest.TestCase):
+    def setUp(self):
+        self.api = CoinglassAPI(api_key="test_key")
 
-class TestAPI(TestCase):
-    def setUp(self) -> None:
-        self.cg = CoinglassAPI(coinglass_secret=os.getenv("COINGLASS_SECRET"))
+    @patch('requests.Session.request')
+    def test_futures_markets_success(self, mock_request):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"success": True, "data": [{"symbol": "BTC", "price": 50000}]}
+        mock_request.return_value = mock_response
 
-    def tearDown(self) -> None:
-        self.cg._session.close()
+        df = self.api.futures_markets(symbol="BTC")
+        self.assertIsInstance(df, pd.DataFrame)
+        self.assertFalse(df.empty)
+        self.assertIn("symbol", df.columns)
 
-    def test_perpetual_market(self) -> None:
-        btc_perp = self.cg.perpetual_market(symbol="BTC")
-        self.assertIn("openInterest", btc_perp.columns)
-        self.assertIn("fundingRate", btc_perp.columns)
-        self.assertIn("totalVolUsd", btc_perp.columns)
+    @patch('requests.Session.request')
+    def test_funding_rate_history_success(self, mock_request):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"success": True, "data": [{"r": 0.01, "t": 1622548800000}]}
+        mock_request.return_value = mock_response
 
-    def test_futures_markets(self) -> None:
-        btc_futs = self.cg.futures_market(symbol="BTC")
-        self.assertIn("longRate", btc_futs.columns)
-        self.assertIn("shortRate", btc_futs.columns)
-        self.assertIn("openInterestAmount", btc_futs.columns)
+        df = self.api.funding_rate_history(symbol="BTC", interval="h8")
+        self.assertIsInstance(df, pd.DataFrame)
+        self.assertFalse(df.empty)
+        self.assertIn("r", df.columns)
+        self.assertEqual(df.index.name, "time")
 
-    def test_open_interest(self) -> None:
-        btc_oi = self.cg.open_interest(symbol="BTC")
-        self.assertIn("openInterest", btc_oi.columns)
-        self.assertIn("openInterestAmountByStableCoinMargin", btc_oi.columns)
-        self.assertIn("h4OIChangePercent", btc_oi.columns)
+    @patch('requests.Session.request')
+    def test_open_interest_history_success(self, mock_request):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"success": True, "data": [{"oi": 1000, "t": 1622548800000}]}
+        mock_request.return_value = mock_response
 
-    def test_option(self):
-        btc_option = self.cg.option(symbol="BTC")
-        self.assertIn("openInterest", btc_option.columns)
-        self.assertIn("rate", btc_option.columns)
-        self.assertIn("h24Change", btc_option.columns)
+        df = self.api.open_interest_history(symbol="BTC", interval="h8")
+        self.assertIsInstance(df, pd.DataFrame)
+        self.assertFalse(df.empty)
+        self.assertIn("oi", df.columns)
+        self.assertEqual(df.index.name, "time")
 
-    def test_option_history(self):
-        btc_option = self.cg.option_history(symbol="BTC", currency="USD")
-        self.assertIn(('dataMap', 'Deribit'), btc_option.columns)
-        self.assertIn(('dataMap', 'CME'), btc_option.columns)
-        self.assertIn(('dataMap', 'OKX'), btc_option.columns)
+    @patch('requests.Session.request')
+    def test_liquidation_history_success(self, mock_request):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"success": True, "data": [{"v": 1000, "t": 1622548800000}]}
+        mock_request.return_value = mock_response
 
-    def test_option_vol_history(self) -> None:
-        btc_option = self.cg.option_vol_history(symbol="BTC", currency="USD")
-        self.assertIn(('dataMap', 'Deribit'), btc_option.columns)
-        self.assertIn(('dataMap', 'CME'), btc_option.columns)
-        self.assertIn(('dataMap', 'OKX'), btc_option.columns)
+        df = self.api.liquidation_history(symbol="BTC", interval="h8")
+        self.assertIsInstance(df, pd.DataFrame)
+        self.assertFalse(df.empty)
+        self.assertIn("v", df.columns)
+        self.assertEqual(df.index.name, "time")
 
-    def test_top_liquidations(self) -> None:
-        btc_liquidations = self.cg.top_liquidations(time_type="h1")
-        self.assertIn("number", btc_liquidations.columns)
-        self.assertIn("amount", btc_liquidations.columns)
-        self.assertIn("longVolUsd", btc_liquidations.columns)
-        self.assertIn("shortVolUsd", btc_liquidations.columns)
+    @patch('requests.Session.request')
+    def test_long_short_ratio_history_success(self, mock_request):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"success": True, "data": [{"lsr": 1.5, "t": 1622548800000}]}
+        mock_request.return_value = mock_response
 
-    def test_liquidation_info(self) -> None:
-        btc_liquidations_info = self.cg.liquidation_info(symbol="BTC", time_type="h1")
-        self.assertIn("h1TotalVolUsd", btc_liquidations_info)
-        self.assertIn("h1Amount", btc_liquidations_info)
-        self.assertIn("h24TotalVolUsd", btc_liquidations_info)
-        self.assertIn("h24TotalVolUsd", btc_liquidations_info)
+        df = self.api.long_short_ratio_history(symbol="BTC", interval="h8")
+        self.assertIsInstance(df, pd.DataFrame)
+        self.assertFalse(df.empty)
+        self.assertIn("lsr", df.columns)
+        self.assertEqual(df.index.name, "time")
 
-    def test_exchange_liquidations(self) -> None:
-        btc_liquidations = self.cg.exchange_liquidations(symbol="BTC", time_type="h1")
-        self.assertIn("shortRate", btc_liquidations.columns)
-        self.assertIn("longRate", btc_liquidations.columns)
-        self.assertIn("exchangeName", btc_liquidations.columns)
+    @patch('requests.Session.request')
+    def test_options_info_success(self, mock_request):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"success": True, "data": [{"oi": 1000, "vol": 500}]}
+        mock_request.return_value = mock_response
 
-    def test_liquidations_history(self) -> None:
-        btc_liquidations = self.cg.liquidations_history(symbol="BTC", time_type="h1")
-        self.assertIn(('list', 'Binance', 'exchangeName'), btc_liquidations.index)
-        self.assertIn(('list', 'OKX', 'sellQty'), btc_liquidations.index)
+        df = self.api.options_info(symbol="BTC")
+        self.assertIsInstance(df, pd.DataFrame)
+        self.assertFalse(df.empty)
+        self.assertIn("oi", df.columns)
 
-    def test_exchange_long_short_ratio(self) -> None:
-        btc_long_short_ratio = self.cg.exchange_long_short_ratio(
-            symbol="BTC", time_type="h1"
-        )
-        self.assertIn(
-            ('list', 'Binance', 'exchangeName'),
-            btc_long_short_ratio.index
-        )
-        self.assertIn(
-            ('list', 'Kraken', 'shortVolUsd'),
-            btc_long_short_ratio.index
-        )
+    @patch('requests.Session.request')
+    def test_options_exchange_oi_history_success(self, mock_request):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"success": True, "data": [{"oi": 1000, "createTime": 1622548800000}]}
+        mock_request.return_value = mock_response
 
-    def test_long_short_ratio_history(self) -> None:
-        btc_long_short_ratio = self.cg.long_short_ratio_history(
-            symbol="BTC", time_type="h1"
-        )
-        self.assertIn("sellQty", btc_long_short_ratio.columns)
-        self.assertIn("longRateList", btc_long_short_ratio.columns)
+        df = self.api.options_exchange_oi_history(symbol="BTC", exchange="Deribit")
+        self.assertIsInstance(df, pd.DataFrame)
+        self.assertFalse(df.empty)
+        self.assertIn("oi", df.columns)
+        self.assertEqual(df.index.name, "time")
 
-    def test_futures_coins_markets(self) -> None:
-        futures_coins = self.cg.futures_coins_markets()
-        self.assertIn("exchangeName", futures_coins.columns)
-        self.assertIn("avgFundingRate", futures_coins.columns)
-        self.assertIn("avgFundingRateByVol", futures_coins.columns)
+    @patch('requests.Session.request')
+    def test_exchange_balance_history_success(self, mock_request):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"success": True, "data": [{"balance": 1000, "createTime": 1622548800000}]}
+        mock_request.return_value = mock_response
 
-    def test_futures_coins_price_change(self) -> None:
+        df = self.api.exchange_balance_history(exchange="Binance", asset="BTC")
+        self.assertIsInstance(df, pd.DataFrame)
+        self.assertFalse(df.empty)
+        self.assertIn("balance", df.columns)
+        self.assertEqual(df.index.name, "time")
+
+    @patch('requests.Session.request')
+    def test_fear_and_greed_index_success(self, mock_request):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"success": True, "data": [{"value": 50, "t": 1622548800000}]}
+        mock_request.return_value = mock_response
+
+        df = self.api.fear_and_greed_index()
+        self.assertIsInstance(df, pd.DataFrame)
+        self.assertFalse(df.empty)
+        self.assertIn("value", df.columns)
+        self.assertEqual(df.index.name, "time")
+
+    @patch('requests.Session.request')
+    def test_bitcoin_rainbow_chart_success(self, mock_request):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"success": True, "data": [{"value": 50000, "t": 1622548800000}]}
+        mock_request.return_value = mock_response
+
+        df = self.api.bitcoin_rainbow_chart()
+        self.assertIsInstance(df, pd.DataFrame)
+        self.assertFalse(df.empty)
+        self.assertIn("value", df.columns)
+        self.assertEqual(df.index.name, "time")
+
+    @patch('requests.Session.request')
+    def test_no_data_returned(self, mock_request):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"success": True, "data": []}
+        mock_request.return_value = mock_response
+
+        with self.assertRaises(NoDataReturnedError):
+            self.api.futures_markets(symbol="BTC")
+
+    @patch('requests.Session.request')
+    def test_rate_limit_exceeded(self, mock_request):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"success": False, "code": "10004", "msg": "Rate limit exceeded"}
+        mock_request.return_value = mock_response
+
+        with self.assertRaises(RateLimitExceededError):
+            self.api.futures_markets(symbol="BTC")
+
+    @patch('requests.Session.request')
+    def test_coinglass_request_error(self, mock_request):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"success": False, "code": "10001", "msg": "Invalid API key"}
+        mock_request.return_value = mock_response
+
         with self.assertRaises(CoinglassRequestError):
-            self.cg.futures_coins_price_change()
+            self.api.futures_markets(symbol="BTC")
 
-    def test_futures_basis_chart(self) -> None:
-        futures_basis = self.cg.futures_basis_chart(symbol="BTC")
-        self.assertIn(('PERPETUAL', 'name'), futures_basis.index)
-        self.assertIn(('QUARTER', 'name'), futures_basis.index)
+    def test_invalid_parameter_type(self):
+        with self.assertRaises(TypeError):
+            self.api.futures_markets(symbol={"wrong": "type"})
 
-    def test_futures_vol(self) -> None:
-        futures_vol = self.cg.futures_vol(symbol="BTC", time_type="h1")
-        self.assertIn(('dataMap', 'Binance'), futures_vol.columns)
-        self.assertIn(('dataMap', 'Deribit'), futures_vol.columns)
+
+if __name__ == '__main__':
+    unittest.main()
