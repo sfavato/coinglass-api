@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "coinglass-api"
-version = "1.3.0"
-repository = "https://github.com/dineshpinto/coinglass-api"
-homepage = "https://github.com/dineshpinto/coinglass-api"
+version = "1.4.0"
+repository = "https://github.com/sfavato/coinglass-api"
+homepage = "https://github.com/sfavato/coinglass-api"
 license = "MIT"
 keywords = ["coinglass", "api", "crypto", "cryptocurrency", "bitcoin", "ethereum", "binance", "dydx", "okex"]
 description = "Unofficial Python client for Coinglass API"
