@@ -14,7 +14,7 @@ packages = [{ include = "coinglass_api" }]
 python = "^3.10"
 pandas = "^2.0.0"
 requests = "^2.28.2"
-pyzmq = "^25.1.1"
+pyzmq = "^27.1.0"
 
 [tool.poetry.group.dev.dependencies]
 jupyterlab = "^3.5.2"
